@@ -327,12 +327,12 @@
                             <div class="card">
                                 <div class="user-header">
                                     <img src="${data.photoUrl || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="chat-user-pic">
-                                    <b>Jwè: ${data.username || data.sender_name || 'N/A'}</b>
+                                    <b>Jwè: ${data.creator_name || data.username || data.sender_name || 'N/A'}</b>
                                 </div>
                                 <div class="info">
                                     🎮 <b>Jwèt:</b> ${data.game_type || data.game || 'N/A'}<br>
                                     🕹️ <b>Konsole:</b> ${data.console || 'N/A'}<br>
-                                    💰 <b>Miz:</b> <span class="amount">${data.amount || data.bet_amount || 0} HTG</span><br>
+                                    💰 <b>Miz:</b> <span class="amount">${data.bet_amount || data.amount || 0} HTG</span><br>
                                     📝 <b>Deskripsyon:</b> ${data.description || 'Pa gen deskripsyon'}<br>
                                     📅 <b>Lè:</b> ${data.timestamp ? new Date(data.timestamp).toLocaleString() : 'N/A'}<br>
                                     🆔 <b>Challenge ID:</b> ${key}
@@ -364,7 +364,7 @@
                                 <div class="info">
                                     🏠 <b>Mèt Defi:</b> ${data.creator_name || data.host_name || data.username || 'N/A'}<br>
                                     ⚔️ <b>Jwè ki Asepte:</b> ${data.player2_name || data.joiner_name || 'N/A'}<br>
-                                    💰 <b>Total Pot:</b> <span class="amount">${data.total_pot || data.amount || 0} HTG</span><br>
+                                    💰 <b>Total Pot:</b> <span class="amount">${data.total_pot || data.bet_amount || data.amount || 0} HTG</span><br>
                                     🎮 <b>Match:</b> ${data.game || 'N/A'}<br>
                                     🕹️ <b>Konsole:</b> ${data.console || 'N/A'}<br>
                                     🆔 <b>Match ID:</b> ${data.match_id || key}<br>
