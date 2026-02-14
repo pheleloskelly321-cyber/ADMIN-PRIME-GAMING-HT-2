@@ -198,7 +198,7 @@
         <button onclick="chajKategori('admin_requests/deposits', 'Depo', this)">Depo</button>
         <button onclick="chajKategori('admin_requests/withdrawals', 'Retrè', this) ">Retrè</button>
         <button onclick="chajKategori('challenges', 'Defi Lage', this)">Defi Lage</button>
-        <button onclick="chajKategori('admin_controls/accepted_challenges', 'Defi Asepte', this)">Defi Asepte</button>
+        <button onclick="chajKategori('challenges', 'Defi Asepte', this)">Defi Asepte</button>
         <button onclick="chajKategori('admin_requests/match_results', 'Prèv Match', this)">Prèv Match</button>
         <button onclick="chajKategori('users', 'Users', this)">Users</button>
         <button onclick="chajKategori('chat', 'Chat', this)">Chat</button>
@@ -278,6 +278,9 @@
             currentRef = ref(db, path);
             onValue(currentRef, (snapshot) => {
                 area.innerHTML = `<div class="category-title">Kategori: ${non}</div>`;
+                
+                let jwennDone = false;
+
                 if (!snapshot.exists()) {
                     area.innerHTML += `<div style="text-align:center; padding:20px; color:#8B949E;">Pa gen done.</div>`;
                     return;
@@ -292,6 +295,7 @@
                     const imgHtml = imgUrl ? `<div class="prev-img-container"><img src="${imgUrl}" class="prev-img" onclick="openModal('${imgUrl}')"></div>` : "";
 
                     if(non === "Users") {
+                        jwennDone = true;
                         const isBanned = data.role === 'banned';
                         const userPhoto = data.photoUrl || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
                         const wins = (data.stats && data.stats.wins) ? data.stats.wins : 0;
@@ -320,70 +324,75 @@
                                 <div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">REF: ${key}</div>
                             </div>
                         `;
-                        area.innerHTML += kontni;
                     } else if(non === "Defi Lage") {
-                        kontni = `
-                            <div class="card">
-                                <div class="user-header">
-                                    <img src="${data.photoUrl || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="chat-user-pic">
-                                    <b>Jwè: ${data.creator_name || data.username || data.sender_name || 'N/A'}</b>
+                        // Filtre pou jwenn sèlman sa ki POKO asepte
+                        if (!data.player2_id && !data.player2_name) {
+                            jwennDone = true;
+                            kontni = `
+                                <div class="card">
+                                    <div class="user-header">
+                                        <img src="${data.photoUrl || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="chat-user-pic">
+                                        <b>Jwè: ${data.creator_name || data.username || 'N/A'}</b>
+                                    </div>
+                                    <div class="info">
+                                        🎮 <b>Jwèt:</b> ${data.game_type || data.game || 'N/A'}<br>
+                                        🕹️ <b>Konsole:</b> ${data.console || 'N/A'}<br>
+                                        💰 <b>Miz:</b> <span class="amount">${data.bet_amount || data.amount || 0} HTG</span><br>
+                                        🆔 <b>ID:</b> ${key}
+                                    </div>
                                 </div>
-                                <div class="info">
-                                    🎮 <b>Jwèt:</b> ${data.game_type || data.game || 'N/A'}<br>
-                                    🕹️ <b>Konsole:</b> ${data.console || 'N/A'}<br>
-                                    💰 <b>Miz:</b> <span class="amount">${data.bet_amount || data.amount || 0} HTG</span><br>
-                                    📝 <b>Deskripsyon:</b> ${data.description || 'Pa gen deskripsyon'}<br>
-                                    📅 <b>Lè:</b> ${data.timestamp ? new Date(data.timestamp).toLocaleString() : 'N/A'}<br>
-                                    🆔 <b>Challenge ID:</b> ${key}
+                            `;
+                        }
+                    } else if(non === "Defi Asepte") {
+                        // Filtre pou jwenn sèlman sa ki GEN yon player2 (ki asepte)
+                        if (data.player2_id || data.player2_name || data.status === "accepted") {
+                            jwennDone = true;
+                            kontni = `
+                                <div class="card">
+                                    <b style="color:var(--accent)">🤝 Match an Kou</b><br>
+                                    <div class="info">
+                                        🏠 <b>Mèt Defi:</b> ${data.creator_name || data.username || 'N/A'}<br>
+                                        ⚔️ <b>Jwè ki Asepte:</b> ${data.player2_name || 'N/A'}<br>
+                                        💰 <b>Miz:</b> <span class="amount">${data.bet_amount || 0} HTG</span><br>
+                                        🎮 <b>Match:</b> ${data.game || 'N/A'}<br>
+                                        🆔 <b>Match ID:</b> ${data.match_id || key}
+                                    </div>
+                                    <div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">REF: ${key}</div>
                                 </div>
-                                <div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">REF: ${key}</div>
-                            </div>
-                        `;
-                        area.innerHTML += kontni;
+                            `;
+                        }
                     } else if(non === "Chat") {
+                        jwennDone = true;
                         const isMe = data.sender_name === "ADMIN - PRIME";
                         const nonJwè = data.sender_name || "Jwè";
-                        const mesajJwè = data.text || "";
                         const fotoJwè = data.sender_pfp || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
-
                         kontni = `
                             <div class="chat-bubble ${isMe ? 'admin' : 'user'}">
                                 <img src="${fotoJwè}" class="chat-user-pic" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
                                 <div>
                                     <span class="sender-name">${isMe ? 'Ou' : nonJwè}</span>
-                                    <div class="msg-content">${mesajJwè}</div>
+                                    <div class="msg-content">${data.text || ""}</div>
                                 </div>
                             </div>
                         `;
-                        area.innerHTML += kontni;
-                    } else if(non === "Defi Asepte") {
-                        kontni = `
-                            <div class="card">
-                                <b style="color:var(--accent)">🤝 Match an Kou</b><br>
-                                <div class="info">
-                                    🏠 <b>Mèt Defi:</b> ${data.creator_name || data.username || 'N/A'}<br>
-                                    ⚔️ <b>Jwè ki Asepte:</b> ${data.player2_name || 'N/A'}<br>
-                                    💰 <b>Miz:</b> <span class="amount">${data.bet_amount || 0} HTG</span><br>
-                                    🎮 <b>Match:</b> ${data.game || 'N/A'}<br>
-                                    🆔 <b>Match ID:</b> ${data.match_id || key}<br>
-                                    📅 <b>Lè:</b> ${data.timestamp ? new Date(data.timestamp).toLocaleString() : 'N/A'}
-                                </div>
-                                <div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">REF: ${key}</div>
-                            </div>
-                        `;
-                        area.innerHTML += kontni;
                     } else if(non === "Prèv Match") {
-                        kontni = `<div class="card"><b>📸 Rezilta Match</b><br>Jwè: ${data.username}<br>Match ID: ${data.match_id || 'N/A'}${imgHtml}<div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">REF: ${key}</div></div>`;
-                        area.innerHTML += kontni;
+                        jwennDone = true;
+                        kontni = `<div class="card"><b>📸 Rezilta Match</b><br>Jwè: ${data.username}<br>Match ID: ${data.match_id || 'N/A'}${imgHtml}</div>`;
                     } else if(non === "Depo") {
-                        kontni = `<div class="card"><b>💵 Demann Depo</b><br>Jwè: ${data.username}<br>Montan: <span class="amount">${data.amount} HTG</span><br>ID: ${data.transaction_id || 'N/A'}${imgHtml}<div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">REF: ${key}</div></div>`;
-                        area.innerHTML += kontni;
+                        jwennDone = true;
+                        kontni = `<div class="card"><b>💵 Depo</b><br>Jwè: ${data.username}<br>Montan: <span class="amount">${data.amount} HTG</span>${imgHtml}</div>`;
                     } else if(non === "Retrè") {
-                        kontni = `<div class="card"><b>💸 Demann Retrè</b><br>Jwè: ${data.username}<br>Montan: <span class="amount" style="color:var(--danger)">${data.amount} HTG</span><div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">REF: ${key}</div></div>`;
-                        area.innerHTML += kontni;
+                        jwennDone = true;
+                        kontni = `<div class="card"><b>💸 Retrè</b><br>Jwè: ${data.username}<br>Montan: <span class="amount" style="color:var(--danger)">${data.amount} HTG</span></div>`;
                     }
+
+                    if (kontni !== "") area.innerHTML += kontni;
                 });
                 
+                if (!jwennDone) {
+                    area.innerHTML += `<div style="text-align:center; padding:20px; color:#8B949E;">Pa gen anyen nan seksyon sa.</div>`;
+                }
+
                 if(non === "Chat") window.scrollTo(0, document.body.scrollHeight);
                 
             }, (error) => {
