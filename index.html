@@ -85,6 +85,20 @@
             height: 100%;
         }
 
+        /* Styles for Pool Display */
+        .pool-match {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #0D1117;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 1px solid #30363D;
+        }
+        .pool-team { flex: 1; text-align: center; font-weight: bold; font-size: 13px; }
+        .pool-vs { padding: 0 10px; color: var(--danger); font-weight: 900; font-style: italic; }
+
         .chat-bubble {
             display: flex;
             margin-bottom: 15px;
@@ -213,6 +227,7 @@
         <button onclick="chajKategori('challenges', 'Defi Lage', this)">Defi Lage</button>
         <button onclick="chajKategori('challenges', 'Defi Asepte', this)">Defi Asepte</button>
         <button onclick="chajKategori('tournaments', 'Tournoi', this)">Tournoi</button>
+        <button onclick="chajKategori('tournaments', 'Pool', this)">Pool</button>
         <button onclick="chajKategori('admin_requests/match_results', 'Prèv Match', this)">Prèv Match</button>
         <button onclick="chajKategori('users', 'Users', this)">Users</button>
         <button onclick="chajKategori('chat', 'Chat', this)">Chat</button>
@@ -238,7 +253,7 @@
                 <select id="t-type2"><option value="">Chwazi Types 2</option></select>
                 
                 <select id="t-max-players">
-                    <option value="">Limit Jwè yo (10-50)</option>
+                    <option value="">Limit Jwè (10-50)</option>
                     <script>
                         for(let i=10; i<=50; i++) {
                             document.write(`<option value="${i}">${i} Jwè/Ekip</option>`);
@@ -362,7 +377,7 @@
                     });
                 }
                 info.innerText = `Enskripsyon: ${count} / ${maxSlots}`;
-                form.style.display = (count >= maxSlots) ? "none" : "flex";
+                form.style.display = (count >= maxSlots) ? "none" : "flex"; 
             });
         }
         window.ajouteEkipPool = () => {
@@ -375,29 +390,28 @@
             onValue(ref(db, `tournaments/${activeTournoiID}/teams`), (snap) => {
                 if(!snap.exists()) return alert("Ajoute moun anvan!");
                 let list = []; snap.forEach(c => list.push(c.val().name));
-                list.sort(() => Math.random() - 0.5);
+                list.sort(() => Math.random() - 0.5); 
                 let matchData = [];
                 for(let i=0; i<list.length; i+=2) { matchData.push({ p1: list[i], p2: list[i+1] || "BYE" }); }
                 update(ref(db, `tournaments/${activeTournoiID}/brackets`), { round_of_16: matchData }).then(() => alert("Pool jenere!"));
             }, { onlyOnce: true });
         }
 
-        // --- KOPI Egzak TOUT FONKSYON NAN KOD ORIJINAL OU ---
         window.voyeTournoi = function() {
             const jwet = document.getElementById('t-game').value;
             const type1 = document.getElementById('t-type1').value;
             const type2 = document.getElementById('t-type2').value;
-            const slots = document.getElementById('t-max-players').value; // Modified pwan nouvo slots la
+            const slots = document.getElementById('t-max-players').value; 
             const desc = document.getElementById('t-desc').value;
             const date = document.getElementById('t-date').value;
             const time = document.getElementById('t-time').value;
 
-            if(!jwet || !type1 || !type2 || !date || !time) return alert("Ranpli tout bwat yo");
+            if(!jwet || !type1 || !type2 || !date || !time || !slots) return alert("Ranpli tout bwat yo");
 
             push(ref(db, 'tournaments'), {
                 info: {
                     game: jwet, type1: type1, type2: type2,
-                    slots: Number(slots), // Modified
+                    slots: Number(slots),
                     description: desc, status: "open",
                     image_bg: gameImages[jwet] || "",
                     created_at: serverTimestamp()
@@ -449,6 +463,21 @@
                     } else if(non === "Tournoi") {
                         jwennDone = true; const tInfo = data.info || {};
                         kontni = `<div class="card" style="background-image: url('${tInfo.image_bg}')"><div class="card-overlay"><b>🏆 ${tInfo.game || 'TOURNWA'}</b><br><div class="info">🎮 ${tInfo.type1 || ''} - ${tInfo.type2 || ''}<br>📅 <b>Dat:</b> ${data.schedule?.start_date || 'N/A'} | 👥 Limit: ${tInfo.slots || 'N/A'}</div><div class="update-box"><button class="btn-update" style="background:var(--primary)" onclick="openPoolModal('${key}', ${tInfo.slots || 10})">Jere Pool</button><button class="btn-ban" onclick="remove(ref(db, 'tournaments/${key}'))">X</button></div></div></div>`;
+                    } else if(non === "Pool") {
+                        const brackets = data.brackets || {};
+                        const matches = brackets.round_of_16;
+                        if(matches && Array.isArray(matches)) {
+                            jwennDone = true;
+                            let matchHtml = "";
+                            matches.forEach(m => {
+                                matchHtml += `<div class="pool-match">
+                                    <div class="pool-team">${m.p1}</div>
+                                    <div class="pool-vs">VS</div>
+                                    <div class="pool-team">${m.p2}</div>
+                                </div>`;
+                            });
+                            kontni = `<div class="card"><b>📊 Pool Match - ${data.info?.game || 'Tournoi'}</b>${matchHtml}</div>`;
+                        }
                     } else if(non === "Chat") {
                         jwennDone = true; const isMe = data.sender_name === "ADMIN - PRIME";
                         kontni = `<div class="chat-bubble ${isMe ? 'admin' : 'user'}"><img src="${data.sender_pfp || ''}" class="chat-user-pic"><div class="msg-content">${data.text}</div></div>`;
