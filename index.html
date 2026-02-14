@@ -426,10 +426,10 @@
                 const tourData = snap.val();
                 let list = [];
                 
-                if (currentIdx === 0) { // Premier Tour - pran tout moun
+                if (currentIdx === 0) {
                     if(!tourData.teams) return alert("Ajoute moun anvan!");
                     Object.values(tourData.teams).forEach(t => list.push(t.name));
-                } else { // Rounds apre yo - pran ganyen round anvan
+                } else {
                     const prevRound = rounds[currentIdx - 1];
                     const prevMatches = tourData.brackets?.[prevRound];
                     if(!prevMatches) return alert("Ou dwe jenere round anvan an dabò!");
@@ -444,15 +444,18 @@
                 list.sort(() => Math.random() - 0.5); 
                 
                 let matchData = [];
-                const tDate = tourData.schedule?.start_date || "Dimench";
-                const tTime = tourData.schedule?.start_time || "5:00 PM";
+                
+                // --- JENERE DAT AK LÈ AKTYÈL LAN ---
+                const kounya = new Date();
+                const dat = kounya.toLocaleDateString('fr-CA'); // YYYY-MM-DD
+                const le = kounya.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit' }); // HH:MM AM/PM
 
                 for(let i=0; i<list.length; i+=2) { 
                     matchData.push({ 
                         p1: list[i], 
                         p2: list[i+1] || "BYE (Avanse)",
-                        date: tDate,
-                        time: tTime,
+                        date: dat,
+                        time: le,
                         winner: "null"
                     }); 
                 }
