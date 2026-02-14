@@ -74,7 +74,6 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.2);
         }
 
-        /* Styles pou Chat */
         .chat-bubble {
             display: flex;
             margin-bottom: 15px;
@@ -362,11 +361,10 @@
                             <div class="card">
                                 <b style="color:var(--accent)">🤝 Match an Kou</b><br>
                                 <div class="info">
-                                    🏠 <b>Mèt Defi:</b> ${data.creator_name || data.host_name || data.username || 'N/A'}<br>
-                                    ⚔️ <b>Jwè ki Asepte:</b> ${data.player2_name || data.joiner_name || 'N/A'}<br>
-                                    💰 <b>Miz:</b> <span class="amount">${data.bet_amount || data.amount || 0} HTG</span><br>
+                                    🏠 <b>Mèt Defi:</b> ${data.creator_name || data.username || 'N/A'}<br>
+                                    ⚔️ <b>Jwè ki Asepte:</b> ${data.player2_name || 'N/A'}<br>
+                                    💰 <b>Miz:</b> <span class="amount">${data.bet_amount || 0} HTG</span><br>
                                     🎮 <b>Match:</b> ${data.game || 'N/A'}<br>
-                                    🕹️ <b>Konsole:</b> ${data.console || 'N/A'}<br>
                                     🆔 <b>Match ID:</b> ${data.match_id || key}<br>
                                     📅 <b>Lè:</b> ${data.timestamp ? new Date(data.timestamp).toLocaleString() : 'N/A'}
                                 </div>
