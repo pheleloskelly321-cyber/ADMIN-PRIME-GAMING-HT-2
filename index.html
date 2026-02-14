@@ -325,7 +325,6 @@
                             </div>
                         `;
                     } else if(non === "Defi Lage") {
-                        // Filtre pou jwenn sèlman sa ki POKO asepte
                         if (!data.player2_id && !data.player2_name) {
                             jwennDone = true;
                             kontni = `
@@ -344,7 +343,6 @@
                             `;
                         }
                     } else if(non === "Defi Asepte") {
-                        // Filtre pou jwenn sèlman sa ki GEN yon player2 (ki asepte)
                         if (data.player2_id || data.player2_name || data.status === "accepted") {
                             jwennDone = true;
                             kontni = `
@@ -383,7 +381,14 @@
                         kontni = `<div class="card"><b>💵 Depo</b><br>Jwè: ${data.username}<br>Montan: <span class="amount">${data.amount} HTG</span>${imgHtml}</div>`;
                     } else if(non === "Retrè") {
                         jwennDone = true;
-                        kontni = `<div class="card"><b>💸 Retrè</b><br>Jwè: ${data.username}<br>Montan: <span class="amount" style="color:var(--danger)">${data.amount} HTG</span></div>`;
+                        kontni = `
+                            <div class="card">
+                                <b>💸 Demann Retrè</b><br>
+                                Jwè: ${data.username}<br>
+                                📞 <b>Nimewo:</b> <span style="color:var(--primary)">${data.phone || 'Pa disponib'}</span><br>
+                                Montan: <span class="amount" style="color:var(--danger)">${data.amount} HTG</span>
+                                <div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">REF: ${key}</div>
+                            </div>`;
                     }
 
                     if (kontni !== "") area.innerHTML += kontni;
