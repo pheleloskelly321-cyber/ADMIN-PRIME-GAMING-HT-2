@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prime Gaming HT - Admin</title>
+    <style>
+        :root {
+            --bg: #0B0E14;
+            --card-bg: #161B22;
+            --primary: #3B82F6;
+            --accent: #10B981;
+            --text: #F9FAFB;
+            --danger: #EF4444;
+            --modal-bg: rgba(0, 0, 0, 0.9);
+            --admin-msg: #1E3A8A;
+            --user-msg: #30363D;
+        }
+
+        body { 
+            background: var(--bg); 
+            color: var(--text); 
+            font-family: 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; 
+            padding-bottom: 80px;
+        }
+
+        .header { 
+            padding: 20px; 
+            text-align: center; 
+            background: #111827;
+            border-bottom: 2px solid var(--primary);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .header h1 { margin: 0; font-size: 18px; color: var(--primary); letter-spacing: 1px; }
+
+        .nav-categories { 
+            display: flex; 
+            overflow-x: auto; 
+            padding: 12px; 
+            gap: 8px; 
+            background: #0B0E14;
+            border-bottom: 1px solid #30363D;
+        }
+
+        .nav-categories::-webkit-scrollbar { display: none; }
+
+        .nav-categories button { 
+            background: var(--card-bg); 
+            border: 1px solid #30363D; 
+            color: #8B949E; 
+            padding: 8px 16px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            white-space: nowrap;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .nav-categories button.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        #display-area { padding: 15px; max-width: 500px; margin: auto; }
+        .category-title { color: var(--primary); margin-bottom: 12px; font-weight: bold; font-size: 14px; text-transform: uppercase; }
+
+        .card { 
+            background: var(--card-bg); 
+            padding: 15px; 
+            margin-bottom: 12px; 
+            border-radius: 12px; 
+            border: 1px solid #30363D;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        /* Styles pou Chat */
+        .chat-bubble {
+            display: flex;
+            margin-bottom: 15px;
+            gap: 10px;
+            max-width: 85%;
+        }
+
+        .chat-bubble.admin {
+            margin-left: auto;
+            flex-direction: row-reverse;
+        }
+
+        .msg-content {
+            padding: 10px 14px;
+            border-radius: 15px;
+            font-size: 14px;
+            line-height: 1.4;
+            position: relative;
+        }
+
+        .admin .msg-content { background: var(--admin-msg); color: white; border-bottom-right-radius: 2px; }
+        .user .msg-content { background: var(--user-msg); color: white; border-bottom-left-radius: 2px; }
+
+        .sender-name { font-size: 11px; margin-bottom: 4px; color: #8B949E; display: block; }
+        .admin .sender-name { text-align: right; color: var(--primary); }
+
+        .user-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .profile-pic {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary);
+            background: #21262d;
+        }
+
+        .chat-user-pic {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1.5px solid var(--accent);
+            flex-shrink: 0;
+        }
+
+        .card b { color: var(--primary); margin: 0; font-size: 16px; }
+        .card .info { font-size: 13px; color: #8B949E; margin-top: 5px; line-height: 1.6; }
+        .card .amount { color: var(--accent); font-weight: bold; font-size: 16px; }
+
+        .update-box {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #30363D;
+        }
+
+        .update-box input {
+            width: 100px;
+            padding: 8px;
+            font-size: 13px;
+            background: #0D1117;
+            border: 1px solid #30363D;
+            color: white;
+            border-radius: 6px;
+        }
+
+        .btn-update { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; }
+        .btn-ban { background: var(--danger); color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; }
+        .btn-unban { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; }
+
+        .prev-img-container {
+            width: 100%;
+            margin-top: 12px;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #30363D;
+        }
+
+        .prev-img {
+            width: 100%;
+            display: block;
+            max-height: 300px;
+            object-fit: contain;
+            cursor: pointer;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--modal-bg);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content { max-width: 95%; max-height: 85%; border-radius: 8px; }
+        .close-modal { position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; cursor: pointer; }
+
+        .chat-input { position: fixed; bottom: 0; width: 100%; background: #161B22; padding: 12px; display: none; box-sizing: border-box; border-top: 1px solid var(--primary); }
+        .chat-container { display: flex; gap: 8px; max-width: 500px; margin: auto; }
+        .chat-container input { background: #0D1117; border: 1px solid #30363D; color: white; padding: 10px; border-radius: 8px; flex-grow: 1; outline: none; }
+    </style>
+</head>
+<body>
+
+    <div class="header"><h1>PRIME GAMING HT - ADMIN</h1></div>
+
+    <div class="nav-categories" id="navBar">
+        <button onclick="chajKategori('admin_requests/deposits', 'Depo', this)">Depo</button>
+        <button onclick="chajKategori('admin_requests/withdrawals', 'Retrè', this) ">Retrè</button>
+        <button onclick="chajKategori('challenges', 'Defi Lage', this)">Defi Lage</button>
+        <button onclick="chajKategori('admin_controls/accepted_challenges', 'Defi Asepte', this)">Defi Asepte</button>
+        <button onclick="chajKategori('admin_requests/match_results', 'Prèv Match', this)">Prèv Match</button>
+        <button onclick="chajKategori('users', 'Users', this)">Users</button>
+        <button onclick="chajKategori('chat', 'Chat', this)">Chat</button>
+    </div>
+
+    <div id="display-area">
+        <div style="text-align:center; margin-top: 50px; color: #8B949E;">Chwazi yon kategori...</div>
+    </div>
+
+    <div id="myModal" class="modal">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <img class="modal-content" id="imgFull">
+    </div>
+
+    <div id="chat-box" class="chat-input">
+        <div class="chat-container">
+            <input type="text" id="msg" placeholder="Mesaj piblik...">
+            <button class="btn-update" style="background:var(--primary)" onclick="voyeMesaj()">Voye</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue, push, set, update, serverTimestamp, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCHVG_0BCd0V_lFSmg3_2qyC5rKclG-b0M",
+            authDomain: "prime-gaming-ht.firebaseapp.com",
+            databaseURL: "https://prime-gaming-ht-default-rtdb.firebaseio.com",
+            projectId: "prime-gaming-ht",
+            storageBucket: "prime-gaming-ht.firebasestorage.app",
+            messagingSenderId: "579566074161",
+            appId: "1:579566074161:android:e50abea764dd4d37371810"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        let currentRef = null;
+
+        window.openModal = (src) => { document.getElementById("myModal").style.display = "flex"; document.getElementById("imgFull").src = src; }
+        window.closeModal = () => { document.getElementById("myModal").style.display = "none"; }
+
+        window.updateBalance = function(uid) {
+            const inputBal = document.getElementById(`bal-${uid}`);
+            const nouvoBalans = inputBal.value;
+            if (nouvoBalans === "" || isNaN(nouvoBalans)) return alert("Mete yon chif valab");
+            
+            update(ref(db, `users/${uid}`), { balance: Number(nouvoBalans) })
+            .then(() => {
+                alert("Balans lan chanje!");
+                inputBal.value = ""; 
+            })
+            .catch(err => alert("Erè: " + err.message));
+        }
+
+        window.banUser = function(uid, isCurrentlyBanned) {
+            const newRole = isCurrentlyBanned ? 'player' : 'banned';
+            const konfimasyon = isCurrentlyBanned ? "Debloke jwè sa?" : "Bloke (Ban) jwè sa?";
+            
+            if(confirm(konfimasyon)) {
+                update(ref(db, `users/${uid}`), { role: newRole })
+                .then(() => alert("Estati a chanje ak siksè!"))
+                .catch(err => alert("Erè: " + err.message));
+            }
+        }
+
+        window.chajKategori = function(path, non, btn) {
+            if (currentRef) off(currentRef);
+            
+            document.querySelectorAll('.nav-categories button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const area = document.getElementById('display-area');
+            document.getElementById('chat-box').style.display = (non === 'Chat') ? 'block' : 'none';
+            area.innerHTML = `<div class="category-title">Kategori: ${non}</div><div style="text-align:center; padding:20px;">Ap chaje...</div>`;
+
+            currentRef = ref(db, path);
+            onValue(currentRef, (snapshot) => {
+                area.innerHTML = `<div class="category-title">Kategori: ${non}</div>`;
+                if (!snapshot.exists()) {
+                    area.innerHTML += `<div style="text-align:center; padding:20px; color:#8B949E;">Pa gen done.</div>`;
+                    return;
+                }
+
+                snapshot.forEach((child) => {
+                    const data = child.val();
+                    const key = child.key;
+                    let kontni = "";
+                    
+                    const imgUrl = data.proof_img || data.screenshot || data.photoUrl || data.image_url;
+                    const imgHtml = imgUrl ? `<div class="prev-img-container"><img src="${imgUrl}" class="prev-img" onclick="openModal('${imgUrl}')"></div>` : "";
+
+                    if(non === "Users") {
+                        const isBanned = data.role === 'banned';
+                        const userPhoto = data.photoUrl || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+                        const wins = (data.stats && data.stats.wins) ? data.stats.wins : 0;
+                        const losses = (data.stats && data.stats.losses) ? data.stats.losses : 0;
+                        
+                        kontni = `
+                            <div class="card">
+                                <div class="user-header">
+                                    <img src="${userPhoto}" class="profile-pic" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
+                                    <b style="${isBanned ? 'color:var(--danger)' : ''}">${data.username || 'N/A'} ${isBanned ? '(BANNED 🚫)' : ''}</b>
+                                </div>
+                                <div class="info">
+                                    📧 ${data.email || 'Pa gen imèl'}<br>
+                                    📞 ${data.phone || 'Pa gen nimewo'}<br>
+                                    🎭 Ròl: ${data.role || 'player'}<br>
+                                    🏆 Wins: <span style="color:var(--accent)">${wins}</span> | Losses: <span style="color:var(--danger)">${losses}</span><br>
+                                    💰 Balans: <span class="amount">${data.balance || 0} HTG</span>
+                                </div>
+                                <div class="update-box">
+                                    <input type="number" id="bal-${key}" placeholder="Nouvo balans">
+                                    <button class="btn-update" onclick="updateBalance('${key}')">OK</button>
+                                    <button class="${isBanned ? 'btn-unban' : 'btn-ban'}" onclick="banUser('${key}', ${isBanned})">
+                                        ${isBanned ? 'Unban' : 'Ban'}
+                                    </button>
+                                </div>
+                                <div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">REF: ${key}</div>
+                            </div>
+                        `;
+                        area.innerHTML += kontni;
+                    } else if(non === "Defi Lage") {
+                        kontni = `
+                            <div class="card">
+                                <div class="user-header">
+                                    <img src="${data.photoUrl || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="chat-user-pic">
+                                    <b>${data.username || 'Jwè'}</b>
+                                </div>
+                                <div class="info">
+                                    🎮 <b>Jwèt:</b> ${data.game_type || data.game || 'N/A'}<br>
+                                    🕹️ <b>Konsole:</b> ${data.console || 'N/A'}<br>
+                                    💰 <b>Miz:</b> <span class="amount">${data.amount || 0} HTG</span><br>
+                                    📝 <b>Deskripsyon:</b> ${data.description || 'Pa gen deskripsyon'}<br>
+                                    📅 <b>Lè:</b> ${data.timestamp ? new Date(data.timestamp).toLocaleString() : 'N/A'}<br>
+                                    🆔 <b>Challenge ID:</b> ${key}
+                                </div>
+                                <div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">REF: ${key}</div>
+                            </div>
+                        `;
+                        area.innerHTML += kontni;
+                    } else if(non === "Chat") {
+                        const isMe = data.sender_name === "ADMIN - PRIME";
+                        const nonJwè = data.sender_name || "Jwè";
+                        const mesajJwè = data.text || "";
+                        const fotoJwè = data.sender_pfp || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+
+                        kontni = `
+                            <div class="chat-bubble ${isMe ? 'admin' : 'user'}">
+                                <img src="${fotoJwè}" class="chat-user-pic" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
+                                <div>
+                                    <span class="sender-name">${isMe ? 'Ou' : nonJwè}</span>
+                                    <div class="msg-content">${mesajJwè}</div>
+                                </div>
+                            </div>
+                        `;
+                        area.innerHTML += kontni;
+                    } else if(non === "Defi Asepte") {
+                        kontni = `
+                            <div class="card">
+                                <b style="color:var(--accent)">🤝 Match an Kou</b><br>
+                                <div class="info">
+                                    🏠 <b>Mèt Defi:</b> ${data.creator_name || 'N/A'}<br>
+                                    ⚔️ <b>Jwè ki Asepte:</b> ${data.joiner_name || 'N/A'}<br>
+                                    💰 <b>Total Pot:</b> <span class="amount">${data.total_pot || 0} HTG</span><br>
+                                    🎮 <b>Match:</b> ${data.game || 'N/A'}<br>
+                                    🕹️ <b>Konsole:</b> ${data.console || 'N/A'}<br>
+                                    🆔 <b>Match ID:</b> ${data.match_id || key}<br>
+                                    📅 <b>Lè:</b> ${data.timestamp ? new Date(data.timestamp).toLocaleString() : 'N/A'}
+                                </div>
+                                <div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">REF: ${key}</div>
+                            </div>
+                        `;
+                        area.innerHTML += kontni;
+                    } else if(non === "Prèv Match") {
+                        kontni = `<div class="card"><b>📸 Rezilta Match</b><br>Jwè: ${data.username}<br>Match ID: ${data.match_id || 'N/A'}${imgHtml}<div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">REF: ${key}</div></div>`;
+                        area.innerHTML += kontni;
+                    } else if(non === "Depo") {
+                        kontni = `<div class="card"><b>💵 Demann Depo</b><br>Jwè: ${data.username}<br>Montan: <span class="amount">${data.amount} HTG</span><br>ID: ${data.transaction_id || 'N/A'}${imgHtml}<div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">REF: ${key}</div></div>`;
+                        area.innerHTML += kontni;
+                    } else if(non === "Retrè") {
+                        kontni = `<div class="card"><b>💸 Demann Retrè</b><br>Jwè: ${data.username}<br>Montan: <span class="amount" style="color:var(--danger)">${data.amount} HTG</span><div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">REF: ${key}</div></div>`;
+                        area.innerHTML += kontni;
+                    }
+                });
+                
+                if(non === "Chat") window.scrollTo(0, document.body.scrollHeight);
+                
+            }, (error) => {
+                area.innerHTML = `<div style="color:var(--danger); padding:20px; text-align:center;">Erè Firebase: ${error.message}</div>`;
+            });
+        }
+
+        window.voyeMesaj = function() {
+            const msgInput = document.getElementById('msg');
+            if(msgInput.value.trim() !== "") {
+                push(ref(db, 'chat'), { 
+                    sender_name: "ADMIN - PRIME", 
+                    text: msgInput.value, 
+                    sender_pfp: "https://cdn-icons-png.flaticon.com/512/2206/2206368.png",
+                    timestamp: serverTimestamp() 
+                }).then(() => {
+                    msgInput.value = "";
+                });
+            }
+        }
+    </script>
+</body>
+</html>
