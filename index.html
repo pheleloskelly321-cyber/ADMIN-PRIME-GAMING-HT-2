@@ -78,7 +78,6 @@
             overflow: hidden;
         }
 
-        /* Overlay pou tèks ka parèt byen sou imaj background yo */
         .card-overlay {
             background: rgba(11, 14, 20, 0.85);
             padding: 15px;
@@ -227,14 +226,23 @@
         <div class="modal-content" style="width: 300px;">
             <h3 style="color:var(--primary); margin-top:0;">Lage Tournoi</h3>
             <div class="update-box">
-                <select id="t-game">
+                <select id="t-game" onchange="updateGameOptions()">
                     <option value="">Chwazi Jwèt la</option>
                     <option value="Free Fire">Free Fire</option>
                     <option value="CODM">CODM</option>
-                    <option value="PUBG">PUBG</option>
-                    <option value="BLOOD STRIKE">BLOOD STRIKE</option>
+                    <option value="PUBG Mobile">PUBG Mobile</option>
+                    <option value="Blood Strike">Blood Strike</option>
                     <option value="DLS">DLS</option>
                 </select>
+                
+                <select id="t-type1">
+                    <option value="">Chwazi Types 1</option>
+                </select>
+
+                <select id="t-type2">
+                    <option value="">Chwazi Types 2</option>
+                </select>
+
                 <textarea id="t-desc" placeholder="Deskripsyon (Eg: Tournament 1vs1...)"></textarea>
                 <input type="date" id="t-date">
                 <input type="time" id="t-time">
@@ -274,13 +282,40 @@
         const db = getDatabase(app);
         let currentRef = null;
 
-        // Imaj jwèt yo
         const gameImages = {
             "Free Fire": "https://res.cloudinary.com/dcpcbglsw/image/upload/v1770996847/e23ffb9c2e863d2fb034906c15d1bf98_pxlul2.jpg",
             "CODM": "https://res.cloudinary.com/dcpcbglsw/image/upload/v1770997001/c74e5bf57d250c1bfc7b0d96f39f42c7_wkpgqd.jpg",
-            "PUBG": "https://res.cloudinary.com/dcpcbglsw/image/upload/v1770997081/c7072f4fca2663a155a55373d64a37be_f7vp1l.jpg",
-            "BLOOD STRIKE": "https://res.cloudinary.com/dcpcbglsw/image/upload/v1770997367/9476bb2a4d3910f6c63819d27abd24ef_fueziq.jpg",
+            "PUBG Mobile": "https://res.cloudinary.com/dcpcbglsw/image/upload/v1770997081/c7072f4fca2663a155a55373d64a37be_f7vp1l.jpg",
+            "Blood Strike": "https://res.cloudinary.com/dcpcbglsw/image/upload/v1770997367/9476bb2a4d3910f6c63819d27abd24ef_fueziq.jpg",
             "DLS": "https://res.cloudinary.com/dcpcbglsw/image/upload/v1770997700/ebba961300e1bee5773206a40657a81e_sr9vu9.jpg"
+        };
+
+        // Done pou opsyon jwèt yo
+        const gameOptions = {
+            "Free Fire": { types1: ["1v1", "2v2", "3v3", "4v4"], types2: ["Room Battle Royal", "Room Clash Squad", "Todo Rojo"] },
+            "CODM": { types1: ["1v1", "2v2", "5v5"], types2: ["Multiplayer", "Battle Royal", "Snipers Only"] },
+            "PUBG Mobile": { types1: ["1v1", "2v2", "4v4"], types2: ["TDM Warehouse", "Classic Room", "Sniper Training"] },
+            "Blood Strike": { types1: ["1v1", "2v2", "4v4"], types2: ["Battle Royal", "Squad Fight", "Hot Zone"] },
+            "DLS": { types1: ["1v1"], types2: ["Friendly Match", "Tournament Style"] }
+        };
+
+        // Fonksyon pou chanje opsyon yo lè w chwazi jwèt
+        window.updateGameOptions = function() {
+            const game = document.getElementById('t-game').value;
+            const t1 = document.getElementById('t-type1');
+            const t2 = document.getElementById('t-type2');
+
+            t1.innerHTML = '<option value="">Chwazi Types 1</option>';
+            t2.innerHTML = '<option value="">Chwazi Types 2</option>';
+
+            if (game && gameOptions[game]) {
+                gameOptions[game].types1.forEach(opt => {
+                    t1.innerHTML += `<option value="${opt}">${opt}</option>`;
+                });
+                gameOptions[game].types2.forEach(opt => {
+                    t2.innerHTML += `<option value="${opt}">${opt}</option>`;
+                });
+            }
         };
 
         window.openModal = (src) => { document.getElementById("myModal").style.display = "flex"; document.getElementById("imgFull").src = src; }
@@ -291,15 +326,19 @@
 
         window.voyeTournoi = function() {
             const jwet = document.getElementById('t-game').value;
+            const type1 = document.getElementById('t-type1').value;
+            const type2 = document.getElementById('t-type2').value;
             const desc = document.getElementById('t-desc').value;
             const date = document.getElementById('t-date').value;
             const time = document.getElementById('t-time').value;
 
-            if(!jwet || !desc || !date || !time) return alert("Ranpli tout bwat yo");
+            if(!jwet || !type1 || !type2 || !date || !time) return alert("Ranpli tout bwat yo");
 
             push(ref(db, 'tournaments'), {
                 info: {
                     game: jwet,
+                    type1: type1,
+                    type2: type2,
                     description: desc,
                     status: "open",
                     image_bg: gameImages[jwet] || "",
@@ -419,6 +458,7 @@
                                 <div class="card-overlay">
                                     <b>🏆 ${tInfo.game || 'TOURNWA'}</b><br>
                                     <div class="info">
+                                        🎮 ${tInfo.type1 || ''} - ${tInfo.type2 || ''}<br>
                                         📝 ${tInfo.description || 'Pa gen deskripsyon'}<br>
                                         📅 <b>Dat:</b> ${tSchedule.start_date || 'N/A'}<br>
                                         ⏰ <b>Lè:</b> ${tSchedule.start_time || 'N/A'}<br>
