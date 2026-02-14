@@ -63,7 +63,7 @@
         .nav-categories button.active { background: var(--primary); color: white; border-color: var(--primary); }
 
         #display-area { padding: 15px; max-width: 500px; margin: auto; }
-        .category-title { color: var(--primary); margin-bottom: 12px; font-weight: bold; font-size: 14px; text-transform: uppercase; }
+        .category-title { display: flex; justify-content: space-between; align-items: center; color: var(--primary); margin-bottom: 12px; font-weight: bold; font-size: 14px; text-transform: uppercase; }
 
         .card { 
             background: var(--card-bg); 
@@ -138,19 +138,21 @@
             border-top: 1px solid #30363D;
         }
 
-        .update-box input {
-            width: 100px;
+        .update-box input, .update-box textarea {
+            width: 100%;
             padding: 8px;
             font-size: 13px;
             background: #0D1117;
             border: 1px solid #30363D;
             color: white;
             border-radius: 6px;
+            margin-bottom: 5px;
         }
 
         .btn-update { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; }
         .btn-ban { background: var(--danger); color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; }
         .btn-unban { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; }
+        .btn-plus { background: var(--primary); color: white; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 20px; font-weight: bold; display: flex; align-items: center; justify-content: center; }
 
         .prev-img-container {
             width: 100%;
@@ -182,7 +184,7 @@
             align-items: center;
         }
 
-        .modal-content { max-width: 95%; max-height: 85%; border-radius: 8px; }
+        .modal-content { max-width: 95%; max-height: 85%; border-radius: 8px; background: var(--card-bg); padding: 20px; border: 1px solid var(--primary); }
         .close-modal { position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; cursor: pointer; }
 
         .chat-input { position: fixed; bottom: 0; width: 100%; background: #161B22; padding: 12px; display: none; box-sizing: border-box; border-top: 1px solid var(--primary); }
@@ -199,6 +201,7 @@
         <button onclick="chajKategori('admin_requests/withdrawals', 'Retrè', this) ">Retrè</button>
         <button onclick="chajKategori('challenges', 'Defi Lage', this)">Defi Lage</button>
         <button onclick="chajKategori('challenges', 'Defi Asepte', this)">Defi Asepte</button>
+        <button onclick="chajKategori('tournaments', 'Tournoi', this)">Tournoi</button>
         <button onclick="chajKategori('admin_requests/match_results', 'Prèv Match', this)">Prèv Match</button>
         <button onclick="chajKategori('users', 'Users', this)">Users</button>
         <button onclick="chajKategori('chat', 'Chat', this)">Chat</button>
@@ -208,9 +211,22 @@
         <div style="text-align:center; margin-top: 50px; color: #8B949E;">Chwazi yon kategori...</div>
     </div>
 
+    <div id="modalTournoi" class="modal">
+        <div class="modal-content" style="width: 300px;">
+            <h3 style="color:var(--primary); margin-top:0;">Lage Tournoi</h3>
+            <div class="update-box">
+                <textarea id="t-desc" placeholder="Deskripsyon (Antre nan tournoi...)"></textarea>
+                <input type="date" id="t-date">
+                <input type="time" id="t-time">
+                <button class="btn-update" style="width:100%" onclick="voyeTournoi()">Lage Tounwa</button>
+                <button class="btn-ban" style="width:100%; margin-top:5px;" onclick="closeTournoiModal()">Anile</button>
+            </div>
+        </div>
+    </div>
+
     <div id="myModal" class="modal">
         <span class="close-modal" onclick="closeModal()">&times;</span>
-        <img class="modal-content" id="imgFull">
+        <img class="modal-content" id="imgFull" style="background:transparent; border:none;">
     </div>
 
     <div id="chat-box" class="chat-input">
@@ -240,6 +256,39 @@
 
         window.openModal = (src) => { document.getElementById("myModal").style.display = "flex"; document.getElementById("imgFull").src = src; }
         window.closeModal = () => { document.getElementById("myModal").style.display = "none"; }
+        
+        window.openTournoiModal = () => { document.getElementById("modalTournoi").style.display = "flex"; }
+        window.closeTournoiModal = () => { document.getElementById("modalTournoi").style.display = "none"; }
+
+        window.voyeTournoi = function() {
+            const desc = document.getElementById('t-desc').value;
+            const date = document.getElementById('t-date').value;
+            const time = document.getElementById('t-time').value;
+
+            if(!desc || !date || !time) return alert("Ranpli tout bwat yo");
+
+            push(ref(db, 'tournaments'), {
+                info: {
+                    description: desc,
+                    status: "open",
+                    created_at: serverTimestamp()
+                },
+                schedule: {
+                    start_date: date,
+                    start_time: time
+                },
+                brackets: {
+                    round_of_16: "",
+                    quarter_finals: "",
+                    semi_finals: "",
+                    final: "",
+                    champion: "null"
+                }
+            }).then(() => {
+                alert("Tournoi lage!");
+                closeTournoiModal();
+            });
+        }
 
         window.updateBalance = function(uid) {
             const inputBal = document.getElementById(`bal-${uid}`);
@@ -273,11 +322,13 @@
             
             const area = document.getElementById('display-area');
             document.getElementById('chat-box').style.display = (non === 'Chat') ? 'block' : 'none';
-            area.innerHTML = `<div class="category-title">Kategori: ${non}</div><div style="text-align:center; padding:20px;">Ap chaje...</div>`;
+            
+            let btnPlus = (non === 'Tournoi') ? `<button class="btn-plus" onclick="openTournoiModal()">+</button>` : "";
+            area.innerHTML = `<div class="category-title"><span>Kategori: ${non}</span> ${btnPlus}</div><div style="text-align:center; padding:20px;">Ap chaje...</div>`;
 
             currentRef = ref(db, path);
             onValue(currentRef, (snapshot) => {
-                area.innerHTML = `<div class="category-title">Kategori: ${non}</div>`;
+                area.innerHTML = `<div class="category-title"><span>Kategori: ${non}</span> ${btnPlus}</div>`;
                 
                 let jwennDone = false;
 
@@ -320,6 +371,23 @@
                                     <button class="${isBanned ? 'btn-unban' : 'btn-ban'}" onclick="banUser('${key}', ${isBanned})">
                                         ${isBanned ? 'Unban' : 'Ban'}
                                     </button>
+                                </div>
+                                <div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">REF: ${key}</div>
+                            </div>
+                        `;
+                    } else if(non === "Tournoi") {
+                        jwennDone = true;
+                        kontni = `
+                            <div class="card">
+                                <b>🏆 TOURNWA</b><br>
+                                <div class="info">
+                                    📝 ${data.info.description}<br>
+                                    📅 Dat: ${data.schedule.start_date}<br>
+                                    ⏰ Lè: ${data.schedule.start_time}<br>
+                                    📊 Status: <span style="color:var(--accent)">${data.info.status}</span>
+                                </div>
+                                <div class="update-box">
+                                    <button class="btn-update" style="background:var(--primary)">Jere Pool</button>
                                 </div>
                                 <div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">REF: ${key}</div>
                             </div>
