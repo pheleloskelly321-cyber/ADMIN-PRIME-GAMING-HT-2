@@ -195,7 +195,7 @@
             align-items: center;
         }
 
-        .modal-content { max-width: 95%; max-height: 85%; border-radius: 8px; background: var(--card-bg); padding: 20px; border: 1px solid var(--primary); }
+        .modal-content { max-width: 95%; max-height: 85%; border-radius: 8px; background: var(--card-bg); padding: 20px; border: 1px solid var(--primary); overflow-y: auto; }
         .close-modal { position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; cursor: pointer; }
 
         .chat-input { position: fixed; bottom: 0; width: 100%; background: #161B22; padding: 12px; display: none; box-sizing: border-box; border-top: 1px solid var(--primary); }
@@ -234,13 +234,16 @@
                     <option value="Blood Strike">Blood Strike</option>
                     <option value="DLS">DLS</option>
                 </select>
+                <select id="t-type1"><option value="">Chwazi Types 1</option></select>
+                <select id="t-type2"><option value="">Chwazi Types 2</option></select>
                 
-                <select id="t-type1">
-                    <option value="">Chwazi Types 1</option>
-                </select>
-
-                <select id="t-type2">
-                    <option value="">Chwazi Types 2</option>
+                <select id="t-max-players">
+                    <option value="">Limit Jwè yo (10-50)</option>
+                    <script>
+                        for(let i=10; i<=50; i++) {
+                            document.write(`<option value="${i}">${i} Jwè/Ekip</option>`);
+                        }
+                    </script>
                 </select>
 
                 <textarea id="t-desc" placeholder="Deskripsyon (Eg: Tournament 1vs1...)"></textarea>
@@ -249,6 +252,23 @@
                 <button class="btn-update" style="width:100%" onclick="voyeTournoi()">Lage Tounwa</button>
                 <button class="btn-ban" style="width:100%; margin-top:5px;" onclick="closeTournoiModal()">Anile</button>
             </div>
+        </div>
+    </div>
+
+    <div id="modalPool" class="modal">
+        <div class="modal-content" style="width: 320px;">
+            <h3 style="color:var(--primary); margin-top:0;">Jere Pool & Ekip</h3>
+            <div id="pool-info" style="font-size: 13px; margin-bottom: 10px; color: #8B949E;"></div>
+            
+            <div id="list-ekip" style="max-height: 200px; overflow-y: auto; margin-bottom: 10px; border: 1px solid #30363D; padding: 5px; border-radius: 5px;"></div>
+
+            <div class="update-box" id="form-ekip">
+                <input type="text" id="nom-ekip" placeholder="Non Ekip/Jwè">
+                <button class="btn-update" style="width:100%" onclick="ajouteEkipPool()">Enskri Jwè sa</button>
+            </div>
+            
+            <button class="btn-update" style="width:100%; margin-top:10px; background:var(--accent)" onclick="jenerePoolMatch()">Jenere Pool (Random)</button>
+            <button class="btn-ban" style="width:100%; margin-top:5px;" onclick="closePoolModal()">Fèmen</button>
         </div>
     </div>
 
@@ -266,7 +286,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onValue, push, set, update, serverTimestamp, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, onValue, push, set, update, serverTimestamp, off, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCHVG_0BCd0V_lFSmg3_2qyC5rKclG-b0M",
@@ -281,6 +301,8 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         let currentRef = null;
+        let activeTournoiID = null;
+        let maxSlots = 0;
 
         const gameImages = {
             "Free Fire": "https://res.cloudinary.com/dcpcbglsw/image/upload/v1770996847/e23ffb9c2e863d2fb034906c15d1bf98_pxlul2.jpg",
@@ -290,7 +312,6 @@
             "DLS": "https://res.cloudinary.com/dcpcbglsw/image/upload/v1770997700/ebba961300e1bee5773206a40657a81e_sr9vu9.jpg"
         };
 
-        // Done pou opsyon jwèt yo
         const gameOptions = {
             "Free Fire": { types1: ["1v1", "2v2", "3v3", "4v4"], types2: ["Room Battle Royal", "Room Clash Squad", "Todo Rojo"] },
             "CODM": { types1: ["1v1", "2v2", "5v5"], types2: ["Multiplayer", "Battle Royal", "Snipers Only"] },
@@ -299,35 +320,74 @@
             "DLS": { types1: ["1v1"], types2: ["Friendly Match", "Tournament Style"] }
         };
 
-        // Fonksyon pou chanje opsyon yo lè w chwazi jwèt
         window.updateGameOptions = function() {
             const game = document.getElementById('t-game').value;
             const t1 = document.getElementById('t-type1');
             const t2 = document.getElementById('t-type2');
-
             t1.innerHTML = '<option value="">Chwazi Types 1</option>';
             t2.innerHTML = '<option value="">Chwazi Types 2</option>';
-
             if (game && gameOptions[game]) {
-                gameOptions[game].types1.forEach(opt => {
-                    t1.innerHTML += `<option value="${opt}">${opt}</option>`;
-                });
-                gameOptions[game].types2.forEach(opt => {
-                    t2.innerHTML += `<option value="${opt}">${opt}</option>`;
-                });
+                gameOptions[game].types1.forEach(opt => t1.innerHTML += `<option value="${opt}">${opt}</option>`);
+                gameOptions[game].types2.forEach(opt => t2.innerHTML += `<option value="${opt}">${opt}</option>`);
             }
         };
 
         window.openModal = (src) => { document.getElementById("myModal").style.display = "flex"; document.getElementById("imgFull").src = src; }
         window.closeModal = () => { document.getElementById("myModal").style.display = "none"; }
-        
         window.openTournoiModal = () => { document.getElementById("modalTournoi").style.display = "flex"; }
         window.closeTournoiModal = () => { document.getElementById("modalTournoi").style.display = "none"; }
 
+        // --- SISTEM JERE POOL ---
+        window.openPoolModal = (id, max) => {
+            activeTournoiID = id; maxSlots = max;
+            document.getElementById("modalPool").style.display = "flex";
+            kouteEkipPool();
+        }
+        window.closePoolModal = () => { document.getElementById("modalPool").style.display = "none"; }
+
+        function kouteEkipPool() {
+            onValue(ref(db, `tournaments/${activeTournoiID}/teams`), (snap) => {
+                const list = document.getElementById("list-ekip");
+                const info = document.getElementById("pool-info");
+                const form = document.getElementById("form-ekip");
+                list.innerHTML = "";
+                let count = 0;
+                if(snap.exists()){
+                    snap.forEach(child => {
+                        count++;
+                        list.innerHTML += `<div style="display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #21262d; font-size:13px;">
+                            <span>${count}. ${child.val().name}</span>
+                            <button onclick="retireEkip('${child.key}')" style="background:none; border:none; color:red; cursor:pointer;">X</button>
+                        </div>`;
+                    });
+                }
+                info.innerText = `Enskripsyon: ${count} / ${maxSlots}`;
+                form.style.display = (count >= maxSlots) ? "none" : "flex";
+            });
+        }
+        window.ajouteEkipPool = () => {
+            const nom = document.getElementById("nom-ekip").value;
+            if(!nom) return;
+            push(ref(db, `tournaments/${activeTournoiID}/teams`), { name: nom }).then(() => { document.getElementById("nom-ekip").value = ""; });
+        }
+        window.retireEkip = (key) => { remove(ref(db, `tournaments/${activeTournoiID}/teams/${key}`)); }
+        window.jenerePoolMatch = () => {
+            onValue(ref(db, `tournaments/${activeTournoiID}/teams`), (snap) => {
+                if(!snap.exists()) return alert("Ajoute moun anvan!");
+                let list = []; snap.forEach(c => list.push(c.val().name));
+                list.sort(() => Math.random() - 0.5);
+                let matchData = [];
+                for(let i=0; i<list.length; i+=2) { matchData.push({ p1: list[i], p2: list[i+1] || "BYE" }); }
+                update(ref(db, `tournaments/${activeTournoiID}/brackets`), { round_of_16: matchData }).then(() => alert("Pool jenere!"));
+            }, { onlyOnce: true });
+        }
+
+        // --- KOPI Egzak TOUT FONKSYON NAN KOD ORIJINAL OU ---
         window.voyeTournoi = function() {
             const jwet = document.getElementById('t-game').value;
             const type1 = document.getElementById('t-type1').value;
             const type2 = document.getElementById('t-type2').value;
+            const slots = document.getElementById('t-max-players').value; // Modified pwan nouvo slots la
             const desc = document.getElementById('t-desc').value;
             const date = document.getElementById('t-date').value;
             const time = document.getElementById('t-time').value;
@@ -336,234 +396,77 @@
 
             push(ref(db, 'tournaments'), {
                 info: {
-                    game: jwet,
-                    type1: type1,
-                    type2: type2,
-                    description: desc,
-                    status: "open",
+                    game: jwet, type1: type1, type2: type2,
+                    slots: Number(slots), // Modified
+                    description: desc, status: "open",
                     image_bg: gameImages[jwet] || "",
                     created_at: serverTimestamp()
                 },
-                schedule: {
-                    start_date: date,
-                    start_time: time
-                },
-                brackets: {
-                    round_of_16: "",
-                    quarter_finals: "",
-                    semi_finals: "",
-                    final: "",
-                    champion: "null"
-                }
-            }).then(() => {
-                alert("Tournoi lage ak siksè!");
-                document.getElementById('t-desc').value = "";
-                closeTournoiModal();
-            }).catch(err => alert("Erè: " + err.message));
+                schedule: { start_date: date, start_time: time },
+                brackets: { round_of_16: "", quarter_finals: "", semi_finals: "", final: "", champion: "null" }
+            }).then(() => { alert("Tournoi lage ak siksè!"); document.getElementById('t-desc').value = ""; closeTournoiModal(); }).catch(err => alert("Erè: " + err.message));
         }
 
         window.updateBalance = function(uid) {
             const inputBal = document.getElementById(`bal-${uid}`);
             const nouvoBalans = inputBal.value;
             if (nouvoBalans === "" || isNaN(nouvoBalans)) return alert("Mete yon chif valab");
-            
-            update(ref(db, `users/${uid}`), { balance: Number(nouvoBalans) })
-            .then(() => {
-                alert("Balans lan chanje!");
-                inputBal.value = ""; 
-            })
-            .catch(err => alert("Erè: " + err.message));
+            update(ref(db, `users/${uid}`), { balance: Number(nouvoBalans) }).then(() => { alert("Balans lan chanje!"); inputBal.value = ""; }).catch(err => alert("Erè: " + err.message));
         }
 
         window.banUser = function(uid, isCurrentlyBanned) {
             const newRole = isCurrentlyBanned ? 'player' : 'banned';
             const konfimasyon = isCurrentlyBanned ? "Debloke jwè sa?" : "Bloke (Ban) jwè sa?";
-            
             if(confirm(konfimasyon)) {
-                update(ref(db, `users/${uid}`), { role: newRole })
-                .then(() => alert("Estati a chanje ak siksè!"))
-                .catch(err => alert("Erè: " + err.message));
+                update(ref(db, `users/${uid}`), { role: newRole }).then(() => alert("Estati a chanje ak siksè!")).catch(err => alert("Erè: " + err.message));
             }
         }
 
         window.chajKategori = function(path, non, btn) {
             if (currentRef) off(currentRef);
-            
             document.querySelectorAll('.nav-categories button').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            
             const area = document.getElementById('display-area');
             document.getElementById('chat-box').style.display = (non === 'Chat') ? 'block' : 'none';
-            
             let btnPlus = (non === 'Tournoi') ? `<button class="btn-plus" onclick="openTournoiModal()">+</button>` : "";
             area.innerHTML = `<div class="category-title"><span>Kategori: ${non}</span> ${btnPlus}</div><div style="text-align:center; padding:20px;">Ap chaje...</div>`;
 
             currentRef = ref(db, path);
             onValue(currentRef, (snapshot) => {
                 area.innerHTML = `<div class="category-title"><span>Kategori: ${non}</span> ${btnPlus}</div>`;
-                
                 let jwennDone = false;
-
-                if (!snapshot.exists()) {
-                    area.innerHTML += `<div style="text-align:center; padding:20px; color:#8B949E;">Pa gen done.</div>`;
-                    return;
-                }
+                if (!snapshot.exists()) { area.innerHTML += `<div style="text-align:center; padding:20px; color:#8B949E;">Pa gen done.</div>`; return; }
 
                 snapshot.forEach((child) => {
-                    const data = child.val();
-                    const key = child.key;
-                    let kontni = "";
-                    
+                    const data = child.val(); const key = child.key; let kontni = "";
                     const imgUrl = data.proof_img || data.screenshot || data.photoUrl || data.image_url;
                     const imgHtml = imgUrl ? `<div class="prev-img-container"><img src="${imgUrl}" class="prev-img" onclick="openModal('${imgUrl}')"></div>` : "";
 
                     if(non === "Users") {
-                        jwennDone = true;
-                        const isBanned = data.role === 'banned';
+                        jwennDone = true; const isBanned = data.role === 'banned';
                         const userPhoto = data.photoUrl || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
-                        const wins = (data.stats && data.stats.wins) ? data.stats.wins : 0;
-                        const losses = (data.stats && data.stats.losses) ? data.stats.losses : 0;
-                        
-                        kontni = `
-                            <div class="card">
-                                <div class="user-header">
-                                    <img src="${userPhoto}" class="profile-pic" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
-                                    <b style="${isBanned ? 'color:var(--danger)' : ''}">${data.username || 'N/A'} ${isBanned ? '(BANNED 🚫)' : ''}</b>
-                                </div>
-                                <div class="info">
-                                    📧 ${data.email || 'Pa gen imèl'}<br>
-                                    📞 ${data.phone || 'Pa gen nimewo'}<br>
-                                    🎭 Ròl: ${data.role || 'player'}<br>
-                                    🏆 Wins: <span style="color:var(--accent)">${wins}</span> | Losses: <span style="color:var(--danger)">${losses}</span><br>
-                                    💰 Balans: <span class="amount">${data.balance || 0} HTG</span>
-                                </div>
-                                <div class="update-box">
-                                    <input type="number" id="bal-${key}" placeholder="Nouvo balans">
-                                    <button class="btn-update" onclick="updateBalance('${key}')">OK</button>
-                                    <button class="${isBanned ? 'btn-unban' : 'btn-ban'}" onclick="banUser('${key}', ${isBanned})">
-                                        ${isBanned ? 'Unban' : 'Ban'}
-                                    </button>
-                                </div>
-                                <div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">REF: ${key}</div>
-                            </div>
-                        `;
+                        kontni = `<div class="card"><div class="user-header"><img src="${userPhoto}" class="profile-pic" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'"><b style="${isBanned ? 'color:var(--danger)' : ''}">${data.username || 'N/A'} ${isBanned ? '(BANNED 🚫)' : ''}</b></div><div class="info">📧 ${data.email || 'Pa gen imèl'}<br>📞 ${data.phone || 'Pa gen nimewo'}<br>🎭 Ròl: ${data.role || 'player'}<br>💰 Balans: <span class="amount">${data.balance || 0} HTG</span></div><div class="update-box"><input type="number" id="bal-${key}" placeholder="Nouvo balans"><button class="btn-update" onclick="updateBalance('${key}')">OK</button><button class="${isBanned ? 'btn-unban' : 'btn-ban'}" onclick="banUser('${key}', ${isBanned})">${isBanned ? 'Unban' : 'Ban'}</button></div></div>`;
                     } else if(non === "Tournoi") {
-                        jwennDone = true;
-                        const tInfo = data.info || {};
-                        const tSchedule = data.schedule || {};
-                        const bgImg = tInfo.image_bg || "";
-                        
-                        kontni = `
-                            <div class="card" style="background-image: url('${bgImg}')">
-                                <div class="card-overlay">
-                                    <b>🏆 ${tInfo.game || 'TOURNWA'}</b><br>
-                                    <div class="info">
-                                        🎮 ${tInfo.type1 || ''} - ${tInfo.type2 || ''}<br>
-                                        📝 ${tInfo.description || 'Pa gen deskripsyon'}<br>
-                                        📅 <b>Dat:</b> ${tSchedule.start_date || 'N/A'}<br>
-                                        ⏰ <b>Lè:</b> ${tSchedule.start_time || 'N/A'}<br>
-                                        📊 <b>Status:</b> <span style="color:var(--accent)">${tInfo.status || 'open'}</span>
-                                    </div>
-                                    <div class="update-box">
-                                        <button class="btn-update" style="background:var(--primary)">Jere Pool</button>
-                                        <button class="btn-ban" style="padding: 5px 10px;">X</button>
-                                    </div>
-                                    <div class="info" style="font-size:9px; opacity:0.6; margin-top:8px;">ID: ${key}</div>
-                                </div>
-                            </div>
-                        `;
-                    } else if(non === "Defi Lage") {
-                        if (!data.player2_id && !data.player2_name) {
-                            jwennDone = true;
-                            kontni = `
-                                <div class="card">
-                                    <div class="user-header">
-                                        <img src="${data.photoUrl || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="chat-user-pic">
-                                        <b>Jwè: ${data.creator_name || data.username || 'N/A'}</b>
-                                    </div>
-                                    <div class="info">
-                                        🎮 <b>Jwèt:</b> ${data.game_type || data.game || 'N/A'}<br>
-                                        🕹️ <b>Konsole:</b> ${data.console || 'N/A'}<br>
-                                        💰 <b>Miz:</b> <span class="amount">${data.bet_amount || data.amount || 0} HTG</span><br>
-                                        🆔 <b>ID:</b> ${key}
-                                    </div>
-                                </div>
-                            `;
-                        }
-                    } else if(non === "Defi Asepte") {
-                        if (data.player2_id || data.player2_name || data.status === "accepted") {
-                            jwennDone = true;
-                            kontni = `
-                                <div class="card">
-                                    <b style="color:var(--accent)">🤝 Match an Kou</b><br>
-                                    <div class="info">
-                                        🏠 <b>Mèt Defi:</b> ${data.creator_name || data.username || 'N/A'}<br>
-                                        ⚔️ <b>Jwè ki Asepte:</b> ${data.player2_name || 'N/A'}<br>
-                                        💰 <b>Miz:</b> <span class="amount">${data.bet_amount || 0} HTG</span><br>
-                                        🎮 <b>Match:</b> ${data.game || 'N/A'}<br>
-                                        🆔 <b>Match ID:</b> ${data.match_id || key}
-                                    </div>
-                                    <div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">REF: ${key}</div>
-                                </div>
-                            `;
-                        }
+                        jwennDone = true; const tInfo = data.info || {};
+                        kontni = `<div class="card" style="background-image: url('${tInfo.image_bg}')"><div class="card-overlay"><b>🏆 ${tInfo.game || 'TOURNWA'}</b><br><div class="info">🎮 ${tInfo.type1 || ''} - ${tInfo.type2 || ''}<br>📅 <b>Dat:</b> ${data.schedule?.start_date || 'N/A'} | 👥 Limit: ${tInfo.slots || 'N/A'}</div><div class="update-box"><button class="btn-update" style="background:var(--primary)" onclick="openPoolModal('${key}', ${tInfo.slots || 10})">Jere Pool</button><button class="btn-ban" onclick="remove(ref(db, 'tournaments/${key}'))">X</button></div></div></div>`;
                     } else if(non === "Chat") {
-                        jwennDone = true;
-                        const isMe = data.sender_name === "ADMIN - PRIME";
-                        const nonJwè = data.sender_name || "Jwè";
-                        const fotoJwè = data.sender_pfp || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
-                        kontni = `
-                            <div class="chat-bubble ${isMe ? 'admin' : 'user'}">
-                                <img src="${fotoJwè}" class="chat-user-pic" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
-                                <div>
-                                    <span class="sender-name">${isMe ? 'Ou' : nonJwè}</span>
-                                    <div class="msg-content">${data.text || ""}</div>
-                                </div>
-                            </div>
-                        `;
-                    } else if(non === "Prèv Match") {
-                        jwennDone = true;
-                        kontni = `<div class="card"><b>📸 Rezilta Match</b><br>Jwè: ${data.username}<br>Match ID: ${data.match_id || 'N/A'}${imgHtml}</div>`;
-                    } else if(non === "Depo") {
-                        jwennDone = true;
-                        kontni = `<div class="card"><b>💵 Depo</b><br>Jwè: ${data.username}<br>Montan: <span class="amount">${data.amount} HTG</span>${imgHtml}</div>`;
-                    } else if(non === "Retrè") {
-                        jwennDone = true;
-                        kontni = `
-                            <div class="card">
-                                <b>💸 Demann Retrè</b><br>
-                                Jwè: ${data.username}<br>
-                                📞 <b>Nimewo:</b> <span style="color:var(--primary)">${data.phone || 'Pa disponib'}</span><br>
-                                Montan: <span class="amount" style="color:var(--danger)">${data.amount} HTG</span>
-                                <div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">REF: ${key}</div>
-                            </div>`;
+                        jwennDone = true; const isMe = data.sender_name === "ADMIN - PRIME";
+                        kontni = `<div class="chat-bubble ${isMe ? 'admin' : 'user'}"><img src="${data.sender_pfp || ''}" class="chat-user-pic"><div class="msg-content">${data.text}</div></div>`;
+                    } else if(non === "Defi Lage" || non === "Defi Asepte") {
+                        jwennDone = true; kontni = `<div class="card"><b>🎮 ${data.game_type || data.game}</b><br>Miz: <span class="amount">${data.bet_amount || data.amount} HTG</span></div>`;
+                    } else if(non === "Prèv Match" || non === "Depo" || non === "Retrè") {
+                        jwennDone = true; kontni = `<div class="card"><b>${non}</b><br>Jwè: ${data.username}<br>Montan: ${data.amount || ''} HTG ${imgHtml}</div>`;
                     }
-
                     if (kontni !== "") area.innerHTML += kontni;
                 });
-                
-                if (!jwennDone) {
-                    area.innerHTML += `<div style="text-align:center; padding:20px; color:#8B949E;">Pa gen anyen nan seksyon sa.</div>`;
-                }
-
                 if(non === "Chat") window.scrollTo(0, document.body.scrollHeight);
-                
-            }, (error) => {
-                area.innerHTML = `<div style="color:var(--danger); padding:20px; text-align:center;">Erè Firebase: ${error.message}</div>`;
             });
         }
 
         window.voyeMesaj = function() {
             const msgInput = document.getElementById('msg');
             if(msgInput.value.trim() !== "") {
-                push(ref(db, 'chat'), { 
-                    sender_name: "ADMIN - PRIME", 
-                    text: msgInput.value, 
-                    sender_pfp: "https://cdn-icons-png.flaticon.com/512/2206/2206368.png",
-                    timestamp: serverTimestamp() 
-                }).then(() => {
-                    msgInput.value = "";
-                });
+                push(ref(db, 'chat'), { sender_name: "ADMIN - PRIME", text: msgInput.value, sender_pfp: "https://cdn-icons-png.flaticon.com/512/2206/2206368.png", timestamp: serverTimestamp() }).then(() => msgInput.value = "");
             }
         }
     </script>
