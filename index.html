@@ -327,7 +327,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onValue, push, set, update, serverTimestamp, off, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, onValue, push, set, update, serverTimestamp, off, remove, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCHVG_0BCd0V_lFSmg3_2qyC5rKclG-b0M",
@@ -417,52 +417,53 @@
             .then(() => alert("Ganyen sove!"));
         };
 
-        window.jenerePoolMatch = () => {
+        // --- MODIFIKASYON POU DAT JENERE OTOMATIK ---
+        window.jenerePoolMatch = async () => {
             const roundToGen = document.getElementById('round-select').value;
             const rounds = ["round_of_16", "quarter_finals", "semi_finals", "final"];
             const currentIdx = rounds.indexOf(roundToGen);
 
-            onValue(ref(db, `tournaments/${activeTournoiID}`), (snap) => {
-                const tourData = snap.val();
-                let list = [];
+            const snap = await get(ref(db, `tournaments/${activeTournoiID}`));
+            if(!snap.exists()) return;
+            
+            const tourData = snap.val();
+            let list = [];
+            
+            if (currentIdx === 0) {
+                if(!tourData.teams) return alert("Ajoute moun anvan!");
+                Object.values(tourData.teams).forEach(t => list.push(t.name));
+            } else {
+                const prevRound = rounds[currentIdx - 1];
+                const prevMatches = tourData.brackets?.[prevRound];
+                if(!prevMatches) return alert("Ou dwe jenere round anvan an dabò!");
                 
-                if (currentIdx === 0) {
-                    if(!tourData.teams) return alert("Ajoute moun anvan!");
-                    Object.values(tourData.teams).forEach(t => list.push(t.name));
-                } else {
-                    const prevRound = rounds[currentIdx - 1];
-                    const prevMatches = tourData.brackets?.[prevRound];
-                    if(!prevMatches) return alert("Ou dwe jenere round anvan an dabò!");
-                    
-                    prevMatches.forEach(m => {
-                        if(m.winner && m.winner !== "null") list.push(m.winner);
-                    });
-                    
-                    if(list.length < 2) return alert("Ou dwe chwazi ganyen yo nan round anvan an anvan!");
-                }
+                prevMatches.forEach(m => {
+                    if(m.winner && m.winner !== "null") list.push(m.winner);
+                });
+                
+                if(list.length < 2) return alert("Ou dwe chwazi ganyen yo nan round anvan an anvan!");
+            }
 
-                list.sort(() => Math.random() - 0.5); 
-                
-                let matchData = [];
-                
-                // --- JENERE DAT AK LÈ AKTYÈL LAN ---
-                const kounya = new Date();
-                const dat = kounya.toLocaleDateString('fr-CA'); // YYYY-MM-DD
-                const le = kounya.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit' }); // HH:MM AM/PM
+            list.sort(() => Math.random() - 0.5); 
+            
+            // JENERE DAT AK LÈ KREYE KOUNYA LAN
+            const kounya = new Date();
+            const datAktyel = kounya.toLocaleDateString('en-GB').replace(/\//g, '-'); // Eg: 14-02-2026
+            const leAktyel = kounya.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-                for(let i=0; i<list.length; i+=2) { 
-                    matchData.push({ 
-                        p1: list[i], 
-                        p2: list[i+1] || "BYE (Avanse)",
-                        date: dat,
-                        time: le,
-                        winner: "null"
-                    }); 
-                }
-                
-                update(ref(db, `tournaments/${activeTournoiID}/brackets`), { [roundToGen]: matchData })
-                .then(() => alert("Round " + roundToGen + " jenere ak siksè!"));
-            }, { onlyOnce: true });
+            let matchData = [];
+            for(let i=0; i<list.length; i+=2) { 
+                matchData.push({ 
+                    p1: list[i], 
+                    p2: list[i+1] || "BYE (Avanse)",
+                    date: datAktyel,
+                    time: leAktyel,
+                    winner: "null"
+                }); 
+            }
+            
+            update(ref(db, `tournaments/${activeTournoiID}/brackets`), { [roundToGen]: matchData })
+            .then(() => alert("Round " + roundToGen + " jenere ak dat jodi a!"));
         }
 
         window.voyeTournoi = function() {
