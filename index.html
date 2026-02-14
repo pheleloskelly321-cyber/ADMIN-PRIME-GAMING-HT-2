@@ -105,6 +105,17 @@
         .pool-team { flex: 1; text-align: center; font-weight: bold; font-size: 13px; }
         .pool-vs { padding: 0 10px; color: var(--danger); font-weight: 900; font-style: italic; }
 
+        .winner-select {
+            width: 100%;
+            margin-top: 8px;
+            background: #161b22;
+            color: var(--accent);
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            font-size: 11px;
+            padding: 4px;
+        }
+
         .chat-bubble {
             display: flex;
             margin-bottom: 15px;
@@ -289,16 +300,14 @@
             </div>
             
             <div class="update-box" style="margin-top: 10px; border-top: 1px dashed #444; padding-top: 10px;">
-                <label style="font-size: 11px; color: var(--primary);">Programasyon Match:</label>
+                <label style="font-size: 11px; color: var(--primary);">Chwazi Round pou jenere:</label>
                 <select id="round-select">
                     <option value="round_of_16">Premier Tour</option>
                     <option value="quarter_finals">Quarter Finals</option>
                     <option value="semi_finals">Semi Finals</option>
                     <option value="final">Final</option>
                 </select>
-                <input type="date" id="p-date" placeholder="Dat Match">
-                <input type="time" id="p-time" placeholder="Lè Match">
-                <button class="btn-update" style="width:100%; background:var(--accent)" onclick="jenerePoolMatch()">Jenere Pool (Random)</button>
+                <button class="btn-update" style="width:100%; background:var(--accent)" onclick="jenerePoolMatch()">Jenere Pool (Otomatik)</button>
             </div>
             <button class="btn-ban" style="width:100%; margin-top:5px;" onclick="closePoolModal()">Fèmen</button>
         </div>
@@ -356,7 +365,7 @@
             const game = document.getElementById('t-game').value;
             const t1 = document.getElementById('t-type1');
             const t2 = document.getElementById('t-type2');
-            t1.innerHTML = '<option value="">Chwazi Types 1</option>';
+            t1.innerHTML = '<option value="">Chwazi Jwèt la</option>';
             t2.innerHTML = '<option value="">Chwazi Types 2</option>';
             if (game && gameOptions[game]) {
                 gameOptions[game].types1.forEach(opt => t1.innerHTML += `<option value="${opt}">${opt}</option>`);
@@ -403,39 +412,53 @@
         }
         window.retireEkip = (key) => { remove(ref(db, `tournaments/${activeTournoiID}/teams/${key}`)); }
         
-        // JENERE POOL AK DAT AK LÈ ADMIN AN CHWAZI
-        window.jenerePoolMatch = () => {
-            const roundToGenerate = document.getElementById('round-select').value;
-            const chosenDate = document.getElementById('p-date').value;
-            const chosenTime = document.getElementById('p-time').value;
+        window.setWinner = (tourId, round, matchIdx, winnerName) => {
+            update(ref(db, `tournaments/${tourId}/brackets/${round}/${matchIdx}`), { winner: winnerName })
+            .then(() => alert("Ganyen sove!"));
+        };
 
-            if(!chosenDate || !chosenTime) return alert("Ou dwe mete yon DAT ak yon LÈ pou match sa yo!");
-            
-            onValue(ref(db, `tournaments/${activeTournoiID}/teams`), (snap) => {
-                if(!snap.exists()) return alert("Ajoute moun anvan!");
+        window.jenerePoolMatch = () => {
+            const roundToGen = document.getElementById('round-select').value;
+            const rounds = ["round_of_16", "quarter_finals", "semi_finals", "final"];
+            const currentIdx = rounds.indexOf(roundToGen);
+
+            onValue(ref(db, `tournaments/${activeTournoiID}`), (snap) => {
+                const tourData = snap.val();
+                let list = [];
                 
-                let list = []; 
-                snap.forEach(c => list.push(c.val().name));
-                
-                // Shuffle Aleatwa
+                if (currentIdx === 0) { // Premier Tour - pran tout moun
+                    if(!tourData.teams) return alert("Ajoute moun anvan!");
+                    Object.values(tourData.teams).forEach(t => list.push(t.name));
+                } else { // Rounds apre yo - pran ganyen round anvan
+                    const prevRound = rounds[currentIdx - 1];
+                    const prevMatches = tourData.brackets?.[prevRound];
+                    if(!prevMatches) return alert("Ou dwe jenere round anvan an dabò!");
+                    
+                    prevMatches.forEach(m => {
+                        if(m.winner && m.winner !== "null") list.push(m.winner);
+                    });
+                    
+                    if(list.length < 2) return alert("Ou dwe chwazi ganyen yo nan round anvan an anvan!");
+                }
+
                 list.sort(() => Math.random() - 0.5); 
                 
                 let matchData = [];
+                const tDate = tourData.schedule?.start_date || "Dimench";
+                const tTime = tourData.schedule?.start_time || "5:00 PM";
+
                 for(let i=0; i<list.length; i+=2) { 
                     matchData.push({ 
                         p1: list[i], 
                         p2: list[i+1] || "BYE (Avanse)",
-                        date: chosenDate,
-                        time: chosenTime
+                        date: tDate,
+                        time: tTime,
+                        winner: "null"
                     }); 
                 }
                 
-                update(ref(db, `tournaments/${activeTournoiID}/brackets`), { [roundToGenerate]: matchData })
-                .then(() => {
-                    alert("Pool " + roundToGenerate + " jenere ak siksè!");
-                    document.getElementById('p-date').value = "";
-                    document.getElementById('p-time').value = "";
-                });
+                update(ref(db, `tournaments/${activeTournoiID}/brackets`), { [roundToGen]: matchData })
+                .then(() => alert("Round " + roundToGen + " jenere ak siksè!"));
             }, { onlyOnce: true });
         }
 
@@ -490,7 +513,6 @@
             currentRef = ref(db, path);
             onValue(currentRef, (snapshot) => {
                 area.innerHTML = `<div class="category-title"><span>Kategori: ${non}</span> ${btnPlus}</div>`;
-                let jwennDone = false;
                 if (!snapshot.exists()) { area.innerHTML += `<div style="text-align:center; padding:20px; color:#8B949E;">Pa gen done.</div>`; return; }
 
                 snapshot.forEach((child) => {
@@ -499,11 +521,11 @@
                     const imgHtml = imgUrl ? `<div class="prev-img-container"><img src="${imgUrl}" class="prev-img" onclick="openModal('${imgUrl}')"></div>` : "";
 
                     if(non === "Users") {
-                        jwennDone = true; const isBanned = data.role === 'banned';
+                        const isBanned = data.role === 'banned';
                         const userPhoto = data.photoUrl || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
                         kontni = `<div class="card"><div class="user-header"><img src="${userPhoto}" class="profile-pic" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'"><b style="${isBanned ? 'color:var(--danger)' : ''}">${data.username || 'N/A'} ${isBanned ? '(BANNED 🚫)' : ''}</b></div><div class="info">📧 ${data.email || 'Pa gen imèl'}<br>📞 ${data.phone || 'Pa gen nimewo'}<br>🎭 Ròl: ${data.role || 'player'}<br>💰 Balans: <span class="amount">${data.balance || 0} HTG</span></div><div class="update-box"><input type="number" id="bal-${key}" placeholder="Nouvo balans"><button class="btn-update" onclick="updateBalance('${key}')">OK</button><button class="${isBanned ? 'btn-unban' : 'btn-ban'}" onclick="banUser('${key}', ${isBanned})">${isBanned ? 'Unban' : 'Ban'}</button></div></div>`;
                     } else if(non === "Tournoi") {
-                        jwennDone = true; const tInfo = data.info || {};
+                        const tInfo = data.info || {};
                         kontni = `<div class="card" style="background-image: url('${tInfo.image_bg}')"><div class="card-overlay"><b>🏆 ${tInfo.game || 'TOURNWA'}</b><br><div class="info">🎮 ${tInfo.type1 || ''} - ${tInfo.type2 || ''}<br>📅 <b>Dat:</b> ${data.schedule?.start_date || 'N/A'} | 👥 Limit: ${tInfo.slots || 'N/A'}</div><div class="update-box"><button class="btn-update" style="background:var(--primary)" onclick="openPoolModal('${key}', ${tInfo.slots || 10})">Jere Pool</button><button class="btn-ban" onclick="remove(ref(db, 'tournaments/${key}'))">X</button></div></div></div>`;
                     } else if(non === "Pool") {
                         const brackets = data.brackets || {};
@@ -513,23 +535,32 @@
                         Object.keys(roundNames).forEach(roundKey => {
                             if(brackets[roundKey] && Array.isArray(brackets[roundKey])) {
                                 matchHtml += `<div style="color:var(--primary); font-size:11px; margin-top:10px; font-weight:bold; border-bottom:1px solid #333; padding-bottom:3px;">${roundNames[roundKey]}</div>`;
-                                brackets[roundKey].forEach(m => {
+                                brackets[roundKey].forEach((m, idx) => {
                                     matchHtml += `
-                                    <div class="pool-match" style="flex-direction:column; align-items:stretch;">
+                                    <div class="pool-match">
                                         <div class="match-meta"><span>📅 ${m.date}</span><span>⏰ ${m.time}</span></div>
-                                        <div class="match-teams"><div class="pool-team">${m.p1}</div><div class="pool-vs">VS</div><div class="pool-team">${m.p2}</div></div>
+                                        <div class="match-teams">
+                                            <div class="pool-team" style="${m.winner === m.p1 ? 'color:var(--accent)' : ''}">${m.p1}</div>
+                                            <div class="pool-vs">VS</div>
+                                            <div class="pool-team" style="${m.winner === m.p2 ? 'color:var(--accent)' : ''}">${m.p2}</div>
+                                        </div>
+                                        <select class="winner-select" onchange="setWinner('${key}', '${roundKey}', ${idx}, this.value)">
+                                            <option value="null">-- Chwazi Ganyen --</option>
+                                            <option value="${m.p1}" ${m.winner === m.p1 ? 'selected' : ''}>Ganyen: ${m.p1}</option>
+                                            <option value="${m.p2}" ${m.winner === m.p2 ? 'selected' : ''}>Ganyen: ${m.p2}</option>
+                                        </select>
                                     </div>`;
                                 });
                             }
                         });
-                        if(matchHtml !== "") { jwennDone = true; kontni = `<div class="card"><b>📊 TABLO MATCH - ${data.info?.game || 'Tournoi'}</b>${matchHtml}</div>`; }
+                        if(matchHtml !== "") { kontni = `<div class="card"><b>📊 TABLO MATCH - ${data.info?.game || 'Tournoi'}</b>${matchHtml}</div>`; }
                     } else if(non === "Chat") {
-                        jwennDone = true; const isMe = data.sender_name === "ADMIN - PRIME";
+                        const isMe = data.sender_name === "ADMIN - PRIME";
                         kontni = `<div class="chat-bubble ${isMe ? 'admin' : 'user'}"><img src="${data.sender_pfp || ''}" class="chat-user-pic"><div class="msg-content">${data.text}</div></div>`;
                     } else if(non === "Defi Lage" || non === "Defi Asepte") {
-                        jwennDone = true; kontni = `<div class="card"><b>🎮 ${data.game_type || data.game}</b><br>Miz: <span class="amount">${data.bet_amount || data.amount} HTG</span></div>`;
+                        kontni = `<div class="card"><b>🎮 ${data.game_type || data.game}</b><br>Miz: <span class="amount">${data.bet_amount || data.amount} HTG</span></div>`;
                     } else if(non === "Prèv Match" || non === "Depo" || non === "Retrè") {
-                        jwennDone = true; kontni = `<div class="card"><b>${non}</b><br>Jwè: ${data.username}<br>Montan: ${data.amount || ''} HTG ${imgHtml}</div>`;
+                        kontni = `<div class="card"><b>${non}</b><br>Jwè: ${data.username}<br>Montan: ${data.amount || ''} HTG ${imgHtml}</div>`;
                     }
                     if (kontni !== "") area.innerHTML += kontni;
                 });
