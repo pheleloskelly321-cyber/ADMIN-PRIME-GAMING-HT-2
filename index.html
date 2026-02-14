@@ -267,6 +267,7 @@
 
             if(!desc || !date || !time) return alert("Ranpli tout bwat yo");
 
+            // N ap voye done yo nan "tournaments" pou jwè yo ka wè l
             push(ref(db, 'tournaments'), {
                 info: {
                     description: desc,
@@ -285,9 +286,10 @@
                     champion: "null"
                 }
             }).then(() => {
-                alert("Tournoi lage!");
+                alert("Tournoi lage ak siksè!");
+                document.getElementById('t-desc').value = "";
                 closeTournoiModal();
-            });
+            }).catch(err => alert("Erè: " + err.message));
         }
 
         window.updateBalance = function(uid) {
@@ -377,19 +379,24 @@
                         `;
                     } else if(non === "Tournoi") {
                         jwennDone = true;
+                        // Nou asire kòd la ka li estrikti {info, schedule}
+                        const tInfo = data.info || {};
+                        const tSchedule = data.schedule || {};
+                        
                         kontni = `
                             <div class="card">
-                                <b>🏆 TOURNWA</b><br>
+                                <b>🏆 TOURNWA PRISME</b><br>
                                 <div class="info">
-                                    📝 ${data.info.description}<br>
-                                    📅 Dat: ${data.schedule.start_date}<br>
-                                    ⏰ Lè: ${data.schedule.start_time}<br>
-                                    📊 Status: <span style="color:var(--accent)">${data.info.status}</span>
+                                    📝 ${tInfo.description || 'Pa gen deskripsyon'}<br>
+                                    📅 <b>Dat:</b> ${tSchedule.start_date || 'N/A'}<br>
+                                    ⏰ <b>Lè:</b> ${tSchedule.start_time || 'N/A'}<br>
+                                    📊 <b>Status:</b> <span style="color:var(--accent)">${tInfo.status || 'open'}</span>
                                 </div>
                                 <div class="update-box">
-                                    <button class="btn-update" style="background:var(--primary)">Jere Pool</button>
+                                    <button class="btn-update" style="background:var(--primary)">Jere Pool (Brackets)</button>
+                                    <button class="btn-ban" style="padding: 5px 10px;">X</button>
                                 </div>
-                                <div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">REF: ${key}</div>
+                                <div class="info" style="font-size:9px; opacity:0.4; margin-top:8px;">ID: ${key}</div>
                             </div>
                         `;
                     } else if(non === "Defi Lage") {
