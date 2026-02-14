@@ -85,7 +85,6 @@
             height: 100%;
         }
 
-        /* Styles for Pool Display Modifye */
         .pool-match {
             background: #0D1117;
             padding: 10px;
@@ -290,13 +289,15 @@
             </div>
             
             <div class="update-box" style="margin-top: 10px; border-top: 1px dashed #444; padding-top: 10px;">
-                <label style="font-size: 11px; color: var(--primary);">Chwazi Round pou jenere:</label>
+                <label style="font-size: 11px; color: var(--primary);">Programasyon Match:</label>
                 <select id="round-select">
                     <option value="round_of_16">Premier Tour</option>
                     <option value="quarter_finals">Quarter Finals</option>
                     <option value="semi_finals">Semi Finals</option>
                     <option value="final">Final</option>
                 </select>
+                <input type="date" id="p-date" placeholder="Dat Match">
+                <input type="time" id="p-time" placeholder="Lè Match">
                 <button class="btn-update" style="width:100%; background:var(--accent)" onclick="jenerePoolMatch()">Jenere Pool (Random)</button>
             </div>
             <button class="btn-ban" style="width:100%; margin-top:5px;" onclick="closePoolModal()">Fèmen</button>
@@ -368,7 +369,6 @@
         window.openTournoiModal = () => { document.getElementById("modalTournoi").style.display = "flex"; }
         window.closeTournoiModal = () => { document.getElementById("modalTournoi").style.display = "none"; }
 
-        // --- SISTEM JERE POOL ---
         window.openPoolModal = (id, max) => {
             activeTournoiID = id; maxSlots = max;
             document.getElementById("modalPool").style.display = "flex";
@@ -403,36 +403,39 @@
         }
         window.retireEkip = (key) => { remove(ref(db, `tournaments/${activeTournoiID}/teams/${key}`)); }
         
-        // Jenere Pool Aleatwa ak Dat/Lè
+        // JENERE POOL AK DAT AK LÈ ADMIN AN CHWAZI
         window.jenerePoolMatch = () => {
             const roundToGenerate = document.getElementById('round-select').value;
+            const chosenDate = document.getElementById('p-date').value;
+            const chosenTime = document.getElementById('p-time').value;
+
+            if(!chosenDate || !chosenTime) return alert("Ou dwe mete yon DAT ak yon LÈ pou match sa yo!");
             
-            onValue(ref(db, `tournaments/${activeTournoiID}`), (snap) => {
-                const tourData = snap.val();
-                if(!tourData.teams) return alert("Ajoute moun anvan!");
+            onValue(ref(db, `tournaments/${activeTournoiID}/teams`), (snap) => {
+                if(!snap.exists()) return alert("Ajoute moun anvan!");
                 
                 let list = []; 
-                Object.values(tourData.teams).forEach(t => list.push(t.name));
+                snap.forEach(c => list.push(c.val().name));
                 
                 // Shuffle Aleatwa
                 list.sort(() => Math.random() - 0.5); 
                 
                 let matchData = [];
-                // Pran dat ak lè ki nan tounwa a
-                const tDate = tourData.schedule?.start_date || "Dimench";
-                const tTime = tourData.schedule?.start_time || "5:00 PM";
-
                 for(let i=0; i<list.length; i+=2) { 
                     matchData.push({ 
                         p1: list[i], 
                         p2: list[i+1] || "BYE (Avanse)",
-                        date: tDate,
-                        time: tTime
+                        date: chosenDate,
+                        time: chosenTime
                     }); 
                 }
                 
                 update(ref(db, `tournaments/${activeTournoiID}/brackets`), { [roundToGenerate]: matchData })
-                .then(() => alert("Pool jenere ak siksè!"));
+                .then(() => {
+                    alert("Pool " + roundToGenerate + " jenere ak siksè!");
+                    document.getElementById('p-date').value = "";
+                    document.getElementById('p-time').value = "";
+                });
             }, { onlyOnce: true });
         }
 
@@ -505,14 +508,7 @@
                     } else if(non === "Pool") {
                         const brackets = data.brackets || {};
                         let matchHtml = "";
-                        
-                        // Defini nivo yo
-                        const roundNames = {
-                            "round_of_16": "Premier Tour",
-                            "quarter_finals": "Quarter Finals",
-                            "semi_finals": "Semi Finals",
-                            "final": "GRANDE FINALE"
-                        };
+                        const roundNames = { "round_of_16": "Premier Tour", "quarter_finals": "Quarter Finals", "semi_finals": "Semi Finals", "final": "GRANDE FINALE" };
 
                         Object.keys(roundNames).forEach(roundKey => {
                             if(brackets[roundKey] && Array.isArray(brackets[roundKey])) {
@@ -520,24 +516,13 @@
                                 brackets[roundKey].forEach(m => {
                                     matchHtml += `
                                     <div class="pool-match" style="flex-direction:column; align-items:stretch;">
-                                        <div class="match-meta">
-                                            <span>📅 ${m.date}</span>
-                                            <span>⏰ ${m.time}</span>
-                                        </div>
-                                        <div class="match-teams">
-                                            <div class="pool-team">${m.p1}</div>
-                                            <div class="pool-vs">VS</div>
-                                            <div class="pool-team">${m.p2}</div>
-                                        </div>
+                                        <div class="match-meta"><span>📅 ${m.date}</span><span>⏰ ${m.time}</span></div>
+                                        <div class="match-teams"><div class="pool-team">${m.p1}</div><div class="pool-vs">VS</div><div class="pool-team">${m.p2}</div></div>
                                     </div>`;
                                 });
                             }
                         });
-
-                        if(matchHtml !== "") {
-                            jwennDone = true;
-                            kontni = `<div class="card"><b>📊 TABLO MATCH - ${data.info?.game || 'Tournoi'}</b>${matchHtml}</div>`;
-                        }
+                        if(matchHtml !== "") { jwennDone = true; kontni = `<div class="card"><b>📊 TABLO MATCH - ${data.info?.game || 'Tournoi'}</b>${matchHtml}</div>`; }
                     } else if(non === "Chat") {
                         jwennDone = true; const isMe = data.sender_name === "ADMIN - PRIME";
                         kontni = `<div class="chat-bubble ${isMe ? 'admin' : 'user'}"><img src="${data.sender_pfp || ''}" class="chat-user-pic"><div class="msg-content">${data.text}</div></div>`;
